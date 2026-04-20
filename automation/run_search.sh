@@ -14,7 +14,9 @@
 set -euo pipefail
 
 # ── Configuration ──────────────────────────────────────────────────────────────
-PROJECT_DIR="/Users/YOURNAME/code/jobs"
+# Resolve PROJECT_DIR relative to this script's location (automation/ is one level down)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 AUTOMATION_DIR="${PROJECT_DIR}/automation"
 TMP_DIR="${AUTOMATION_DIR}/tmp"
 LOG_DIR="${AUTOMATION_DIR}/logs"
@@ -25,7 +27,7 @@ EVAL_PROMPT="${AUTOMATION_DIR}/eval_agent_prompt.md"
 RESUME_PROMPT="${AUTOMATION_DIR}/resume_agent_prompt.md"
 CONFIG_FILE="${PROJECT_DIR}/search_config.yaml"
 
-CLAUDE_BIN="/usr/local/bin/claude"
+CLAUDE_BIN="$(command -v claude || echo "/usr/local/bin/claude")"
 SERPAPI_KEY="YOUR_SERPAPI_KEY_HERE"
 RUN_DATE=$(date +%Y-%m-%d)
 RUN_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -70,7 +72,16 @@ notify() {
   local title="$1"
   local message="$2"
   local sound="${3:-Glass}"
-  osascript -e "display notification \"$message\" with title \"$title\" sound name \"$sound\"" 2>/dev/null || true
+  # macOS
+  if command -v osascript &>/dev/null; then
+    osascript -e "display notification \"$message\" with title \"$title\" sound name \"$sound\"" 2>/dev/null || true
+  # Linux (notify-send)
+  elif command -v notify-send &>/dev/null; then
+    notify-send "$title" "$message" 2>/dev/null || true
+  # Fallback: just log it
+  else
+    log "NOTIFICATION: $title — $message"
+  fi
 }
 
 preflight_check() {
@@ -417,11 +428,22 @@ print(', '.join(names[:5]))
 
 # ── PDF Generator ────────────────────────────────────────────────────────────
 
-CHROME_BIN="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+# Find Chrome binary — macOS, Linux, or Windows (Git Bash/WSL)
+if [ -x "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" ]; then
+  CHROME_BIN="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+elif command -v google-chrome &>/dev/null; then
+  CHROME_BIN="$(command -v google-chrome)"
+elif command -v google-chrome-stable &>/dev/null; then
+  CHROME_BIN="$(command -v google-chrome-stable)"
+elif [ -x "/mnt/c/Program Files/Google/Chrome/Application/chrome.exe" ]; then
+  CHROME_BIN="/mnt/c/Program Files/Google/Chrome/Application/chrome.exe"
+else
+  CHROME_BIN=""
+fi
 
 generate_pdfs() {
-  if [ ! -x "$CHROME_BIN" ]; then
-    log "WARNING: Chrome not found at $CHROME_BIN — skipping PDF generation"
+  if [ -z "$CHROME_BIN" ] || [ ! -x "$CHROME_BIN" ]; then
+    log "WARNING: Chrome not found — skipping PDF generation. Install Chrome for automatic PDF conversion."
     return
   fi
 

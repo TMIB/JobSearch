@@ -9,7 +9,9 @@ import os
 import glob
 from datetime import datetime
 
-PROJECT_DIR = os.environ.get("PROJECT_DIR", "/Users/YOURNAME/code/jobs")
+# Resolve project root relative to this script (automation/ is one level down)
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.environ.get("PROJECT_DIR", os.path.dirname(_SCRIPT_DIR))
 TMP_DIR = os.path.join(PROJECT_DIR, "automation", "tmp")
 LEADS_DIR = os.path.join(PROJECT_DIR, "leads")
 

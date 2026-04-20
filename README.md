@@ -27,7 +27,7 @@ Four specialized agents, each with its own tunable prompt:
 
 3. **Resume Tailoring Agent** (Opus) — Takes above-threshold leads and generates a customized HTML resume aligned to each listing's keywords and requirements. Uses an experience inventory that tracks what keywords are safe vs. what would overstate your experience. Builds a library of approved resumes and reuses them as starting points for similar future roles.
 
-4. **Orchestrator** — Shell script that coordinates the pipeline, deduplicates against previous runs, converts resumes to PDF via headless Chrome, generates an HTML report with color-coded scores and clickable links, and sends a macOS desktop notification.
+4. **Orchestrator** — Shell script that coordinates the pipeline, deduplicates against previous runs, converts resumes to PDF via headless Chrome, generates an HTML report with color-coded scores and clickable links, and sends a desktop notification.
 
 ## Getting Started
 
@@ -35,21 +35,18 @@ Four specialized agents, each with its own tunable prompt:
 
 - [Claude Code CLI](https://claude.ai/code) installed and authenticated
 - [SerpAPI](https://serpapi.com) account (free tier: 250 searches/month, or $25/month for 1,000)
-- Google Chrome (for headless PDF generation)
-- macOS (for launchd scheduling and desktop notifications)
+- Google Chrome (for headless PDF generation — auto-detected on macOS, Linux, and WSL)
 - Python 3 (for report generation and JSON parsing)
+- Bash (macOS/Linux natively, Windows via Git Bash or WSL)
 
-### Step 1: Clone and set your project path
+### Step 1: Clone the project
 
 ```bash
-git clone <this-repo> ~/code/jobs
-cd ~/code/jobs
+git clone https://github.com/TMIB/JobSearch.git
+cd JobSearch
 ```
 
-Update all file paths — search for `YOURNAME` and replace with your macOS username:
-```bash
-grep -rl "YOURNAME" . | xargs sed -i '' 's|/Users/YOURNAME/code/jobs|/Users/yourusername/code/jobs|g'
-```
+All script paths are relative to the project root — no path configuration needed. Clone it wherever you like.
 
 ### Step 2: Add your SerpAPI key
 
@@ -99,10 +96,26 @@ After the first run, open `leads/new_leads_report.html` in your browser and revi
 
 ### Step 7: Schedule daily runs
 
+**macOS (launchd):**
+Edit `automation/com.jobsearch.plist` — replace `/path/to/your/project` with your actual project path (launchd requires absolute paths). Then:
 ```bash
 cp automation/com.jobsearch.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.jobsearch.plist
 ```
+
+**Linux (cron):**
+```bash
+crontab -e
+# Add this line (adjust the path):
+0 7 * * * /path/to/your/project/automation/run_search.sh >> /path/to/your/project/automation/logs/cron.log 2>&1
+```
+
+**Windows (Task Scheduler):**
+Create a scheduled task that runs daily and executes:
+```
+bash C:\path\to\your\project\automation\run_search.sh
+```
+Requires Git Bash or WSL.
 
 Runs daily at 7 AM. Edit the plist to change the time. If your Mac is asleep, it fires when it wakes.
 

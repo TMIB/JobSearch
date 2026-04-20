@@ -1,5 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  macOS launchd plist for daily job search runs.
+  UPDATE all paths marked with /path/to/your/project before installing.
+
+  Install:
+    cp automation/com.jobsearch.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.jobsearch.plist
+
+  For Linux, use cron instead:
+    0 7 * * * /path/to/your/project/automation/run_search.sh >> /path/to/your/project/automation/logs/cron.log 2>&1
+
+  For Windows (Task Scheduler), create a task that runs:
+    bash /path/to/your/project/automation/run_search.sh
+-->
 <plist version="1.0">
 <dict>
     <key>Label</key>
@@ -8,11 +22,13 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>/Users/YOURNAME/code/jobs/automation/run_search.sh</string>
+        <!-- UPDATE: absolute path to run_search.sh -->
+        <string>/path/to/your/project/automation/run_search.sh</string>
     </array>
 
+    <!-- UPDATE: absolute path to project root -->
     <key>WorkingDirectory</key>
-    <string>/Users/YOURNAME/code/jobs</string>
+    <string>/path/to/your/project</string>
 
     <!-- Run daily at 7:00 AM -->
     <key>StartCalendarInterval</key>
@@ -23,22 +39,18 @@
         <integer>0</integer>
     </dict>
 
-    <!-- Environment variables -->
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
-        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
-        <key>HOME</key>
-        <string>/Users/YOURNAME</string>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
     </dict>
 
-    <!-- Logging -->
+    <!-- UPDATE: absolute paths for log output -->
     <key>StandardOutPath</key>
-    <string>/Users/YOURNAME/code/jobs/automation/logs/launchd_stdout.log</string>
+    <string>/path/to/your/project/automation/logs/launchd_stdout.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/YOURNAME/code/jobs/automation/logs/launchd_stderr.log</string>
+    <string>/path/to/your/project/automation/logs/launchd_stderr.log</string>
 
-    <!-- Run on load if we missed the scheduled time (machine was asleep) -->
     <key>RunAtLoad</key>
     <false/>
 </dict>
