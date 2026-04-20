@@ -164,7 +164,7 @@ for listing in data.get("listings", []):
     listing["action"] = "generate_resume"
     listing["dealbreaker"] = None
     listing["category"] = "qa_leadership"
-    listing["best_template"] = "RemoteHunter"
+    listing["best_template"] = "template_1"
     listing["narrative_angle"] = "To be determined during resume generation"
     leads.append(listing)
 result = {

@@ -100,9 +100,9 @@ Create 2-3 template variants in leads/ folders, each optimized for a different r
 
 | Template | Source File | Best For |
 |----------|------------|----------|
-| **jobstogether** | `leads/jobstogether/resume_sr_director_testing.html` | Executive-scope, strategic leadership, enterprise quality strategy |
-| **RemoteHunter** | `leads/RemoteHunter/resume_director_quality_engineering.html` | Tech-forward, distributed teams, CI/CD, cloud infrastructure, observability |
-| **Rockbot** | `leads/Rockbot/resume_director_qa.html` | Hardware + software, AI-based test prioritization, product knowledge |
+| **template_1** | `leads/template_1/resume_example.html` | <!-- Describe what role types this template is optimized for --> |
+| **template_2** | `leads/template_2/resume_example.html` | <!-- Describe what role types this template is optimized for --> |
+| **template_3** | `leads/template_3/resume_example.html` | <!-- (optional) Add more templates as needed --> |
 
 Read the selected template file and use it as the structural base. Modify content to align with the specific listing.
 
@@ -118,10 +118,10 @@ Read the HTML template file mapped to this lead's category. Understand the struc
 
 ### Step 3: Craft the tagline
 The tagline (italic line under [CANDIDATE]'s name) should be a high-level identity statement, NOT a keyword echo. Examples:
-- Good: "Quality Engineering Leader — 19+ Years Building & Scaling Global QA Organizations"
-- Good: "AI-Forward Engineering Leader — Shipping Spatial Computing Products at Scale"
-- Bad: "Director of QA | CI/CD | Kubernetes | AI/ML | Agile" (keyword stuffing)
-- Bad: "Experienced leader seeking Director of Quality Engineering role" (job-seeker language)
+- Good: "Engineering Leader — 15+ Years Building & Scaling Global Teams"
+- Good: "Product-Focused Technical Leader — Shipping Complex Systems at Scale"
+- Bad: "Director of Engineering | CI/CD | Kubernetes | AI/ML | Agile" (keyword stuffing)
+- Bad: "Experienced leader seeking Director of Engineering role" (job-seeker language)
 
 ### Step 4: Tailor the summary
 Rewrite the summary paragraph to emphasize the aspects of [CANDIDATE]'s experience most relevant to THIS role. Lead with the narrative angle from the evaluation.
@@ -147,7 +147,7 @@ The resume should fit on 2 pages maximum, with NO orphaned sections. The `break-
 
 **To prevent orphaned sections:**
 - After drafting, mentally lay out the content across pages. If the Additional Experience section or a late job entry would be pushed to a third page (or leave a big gap at the bottom of page 2), you MUST reclaim space.
-- **First:** Fold the oldest/least-relevant full job entries (with bullets) into the Additional Experience section as single-line entries. Preserve key highlights (e.g., "QA Manager, Game Studios — 100% first-pass certification, distributed teams").
+- **First:** Fold the oldest/least-relevant full job entries (with bullets) into the Additional Experience section as single-line entries. Preserve key highlights (e.g., "Manager, Division X — key achievement, key metric").
 - **Second:** Trim bullets from mid-career roles — reduce from 4 to 2-3 bullets on less-relevant positions.
 - **Third:** Tighten summary paragraph if still needed.
 - The goal is clean, full 2-page content with no large blank areas and no third page.
@@ -166,7 +166,7 @@ The resume should fit on 2 pages maximum, with NO orphaned sections. The `break-
 
 ## Metadata
 - **resume_quality:** pending
-- **based_on:** {path to source resume, or "template: RemoteHunter"}
+- **based_on:** {path to source resume, or "template: template_name"}
 - **generated_date:** {date}
 
 ## Evaluation Summary
@@ -212,7 +212,7 @@ After processing all leads, write a summary to `automation/tmp/resume_report.jso
       "folder": "leads/AcmeCorp",
       "resume_file": "resume_director_quality_engineering.html",
       "score": 0.82,
-      "template_used": "RemoteHunter"
+      "template_used": "template_1"
     }
   ]
 }

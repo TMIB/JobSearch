@@ -64,13 +64,12 @@ resume:
   budget_cap_usd: 20             # Max spend per run (lower to $5-10 after tuning period)
   template_map:
     # Maps role categories to the best-fit resume template
-    ai_enablement: jobstogether          # Executive-scope, strategic focus
-    qa_leadership: RemoteHunter          # Tech-forward, distributed teams, CI/CD
-    engineering_effectiveness: RemoteHunter
-    tpm: jobstogether                    # Cross-functional leadership
-    solutions: Rockbot                   # Hardware + software, product knowledge
-    consulting: jobstogether
-    default: RemoteHunter                # Fallback template
+    # CUSTOMIZE: Replace these with your template folder names and role categories
+    # Example: create 2-3 resume variants in leads/ optimized for different role types
+    category_1: template_1               # e.g., executive-scope, strategic roles
+    category_2: template_2               # e.g., technical, hands-on leadership roles
+    category_3: template_1               # map each target category to a template
+    default: template_1                  # Fallback template
 
 dedup:
   recheck_after_days: 90         # Re-evaluate listings older than this (companies re-post)
