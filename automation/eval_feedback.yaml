@@ -1,0 +1,23 @@
+# Evaluation Feedback — Your Calibration Data
+#
+# Add entries here when the evaluation agent misscores a listing.
+# Each entry teaches the agent to score similar listings better next time.
+#
+# Format:
+# - company: "Company Name"
+#   title: "Job Title"
+#   agent_score: 0.75
+#   your_verdict: "reject" | "apply" | "maybe"
+#   reason: "Why you disagreed with the score"
+#   lesson: "What the agent should learn from this"
+#
+# Tips from real-world usage:
+# - SerpAPI location data is unreliable. "Remote (Anywhere)" sometimes means hybrid on-site.
+#   Teach the agent to read the full description for on-site signals.
+# - Aggregator sites (Virtual Vocations, BeBee, talent.com) often have stale listings.
+# - "Director" at a 10-person startup with 3 IC reports is not a real Director role.
+# - Hourly rates signal contract/staffing roles, not FTE.
+# - Low experience requirements (<10 years for senior roles) signal the role is below your level.
+# - Location-based pay bands: check your city's band, not SF/NYC.
+
+feedback: []

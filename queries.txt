@@ -1,0 +1,46 @@
+Search Queries to Set Up Alerts For
+
+Platforms searched via SerpAPI: Google Jobs (aggregates Indeed, Glassdoor, LinkedIn, Ladders, ZipRecruiter, and dozens more)
+Supplementary via WebSearch: Greenhouse, Lever direct ATS searches, company careers pages
+
+## Instructions
+# Customize these queries for YOUR target roles, industries, and locations.
+# The search agent rotates through ~12 queries per day.
+# SerpAPI Google Jobs works best with simple title-based queries.
+# Use OR to combine related titles in one query.
+# Location filtering is handled by the SerpAPI location parameter, not the query string.
+
+## Primary Queries (edit for your top-priority role category)
+
+- "Director of [YOUR DOMAIN]" OR "VP [YOUR DOMAIN]" remote
+- "Head of [YOUR DOMAIN]" remote
+- "Senior Director [YOUR DOMAIN]" remote
+
+## Secondary Queries (edit for adjacent categories)
+
+- "[Adjacent Role 1]" director OR head remote
+- "[Adjacent Role 2]" director OR lead remote
+
+## Location-Specific Queries
+
+- "Director of [YOUR DOMAIN]" [YOUR CITY] OR [YOUR STATE]
+- "[YOUR DOMAIN] leader" [YOUR CITY] OR [YOUR STATE]
+
+## Company Careers Pages (supplementary WebSearch)
+
+# List companies you want to check directly:
+# - Company 1
+# - Company 2
+
+## Greenhouse / Lever Direct Searches (supplementary WebSearch)
+
+- site:greenhouse.io "Director of [YOUR DOMAIN]" remote
+- site:lever.co "Head of [YOUR DOMAIN]" remote
+
+## Filter Criteria
+
+When evaluating results, prioritize roles that are:
+- Remote or [YOUR CITY]-based
+- [YOUR TARGET LEVEL] or above
+- At companies with [YOUR PREFERRED COMPANY PROFILE]
+- NOT likely to require [YOUR DEALBREAKERS]

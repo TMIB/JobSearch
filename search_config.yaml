@@ -1,0 +1,76 @@
+# Job Search Agent Configuration
+# Edit this file to tune scoring, thresholds, and dealbreakers.
+# Changes take effect on the next daily run.
+
+search:
+  max_queries_per_run: 12        # Rotates through queries.txt; full coverage every ~4 days
+  max_results_per_query: 10      # Top results to consider per query
+  query_source: queries.txt
+
+scoring:
+  # Weighted dimensions (must sum to 1.0)
+  # Adjust these to shift what the evaluation agent prioritizes.
+  dimensions:
+    level_match: 0.25            # Director/VP/Senior Manager scope. NOT title matching —
+                                 # reason about actual seniority, org size, budget authority.
+                                 # "Director" at a 5-person startup ≠ Director at Salesforce.
+    role_category: 0.20          # Alignment to target categories (see below)
+    location_fit: 0.15           # Remote US = 1.0, Boulder/Denver = 1.0, hybrid CO = 0.7,
+                                 # requires relocation = 0.0
+    coding_interview_risk: 0.15  # INVERTED: high risk of coding interview = LOW score.
+                                 # Read between the lines — "hands-on technical leader" at
+                                 # a startup = likely coding interview.
+    narrative_fit: 0.15          # How well your three pillars (AI Literacy Bootcamp,
+                                 # [AI platform] platform, AI Stakeholder Meeting) plus [Product 1] /
+                                 # [Product 2] stories align with the role's needs.
+    company_maturity: 0.10       # Enterprise/fintech/healthcare/defense > early-stage startup.
+                                 # Mature engineering cultures are less likely to gatekeep
+                                 # on coding interviews and more likely to value experience.
+
+  # Target role categories (in priority order)
+  target_categories:
+    - ai_enablement              # Head of AI Enablement, AI Transformation, AI Adoption
+    - qa_leadership              # Director/VP of QA, Head of Quality
+    - engineering_effectiveness  # Developer Productivity, Engineering Enablement
+    - tpm                        # Senior Director TPM, Director of Program Management
+    - solutions                  # Solutions Architect/Engineer at QA/DevOps tooling companies
+    - consulting                 # Fractional VP/Director, QA consultant
+
+thresholds:
+  generate_resume: 0.65          # Score >= this → create folder, save listing, generate resume
+  report_only: 0.40              # Score >= this but < generate_resume → include in report
+  ignore_below: 0.25             # Score < this → log to seen_listings only, don't mention
+
+dealbreakers:
+  # Auto-reject regardless of score. Case-insensitive substring matching + AI reasoning.
+  - "security clearance required"
+  - "TS/SCI"
+  - "entry level"
+  - "junior"
+  - "intern"
+  - "associate level"
+  - "requires relocation"        # Unless to Boulder/Denver/Colorado
+  - "on-site only"               # Unless Boulder/Denver/Colorado
+  - "visa sponsorship not available"  # Not a dealbreaker for [CANDIDATE], but flag if relevant
+
+  # Role-type dealbreakers (these require AI reasoning, not just keyword matching)
+  - "Pure IC coding role (no management or leadership scope)"
+  - "Requires daily hands-on coding in a specific language"
+  - "QA Engineer / QA Analyst level (not management/leadership)"
+  - "Manual QA tester role"
+
+resume:
+  generate_cover_letter: false   # Set to true to also generate cover letters
+  budget_cap_usd: 20             # Max spend per run (lower to $5-10 after tuning period)
+  template_map:
+    # Maps role categories to the best-fit resume template
+    ai_enablement: jobstogether          # Executive-scope, strategic focus
+    qa_leadership: RemoteHunter          # Tech-forward, distributed teams, CI/CD
+    engineering_effectiveness: RemoteHunter
+    tpm: jobstogether                    # Cross-functional leadership
+    solutions: Rockbot                   # Hardware + software, product knowledge
+    consulting: jobstogether
+    default: RemoteHunter                # Fallback template
+
+dedup:
+  recheck_after_days: 90         # Re-evaluate listings older than this (companies re-post)
