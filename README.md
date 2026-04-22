@@ -97,11 +97,19 @@ After the first run, open `leads/new_leads_report.html` in your browser and revi
 ### Step 7: Schedule daily runs
 
 **macOS (launchd):**
-Edit `automation/com.jobsearch.plist` — replace `/path/to/your/project` with your actual project path (launchd requires absolute paths). Then:
+Edit `automation/com.jobsearch.plist` — replace `/path/to/your/project` with your actual project path (launchd requires absolute paths) and set your preferred hour. Then:
 ```bash
 cp automation/com.jobsearch.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.jobsearch.plist
 ```
+
+**Important:** launchd loads a copy of the plist into memory. If you later change the schedule or paths in the project's plist file, you must copy and reload:
+```bash
+launchctl unload ~/Library/LaunchAgents/com.jobsearch.plist
+cp automation/com.jobsearch.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.jobsearch.plist
+```
+Editing the file in `~/Library/LaunchAgents/` directly also works, but you still need to unload/load for changes to take effect.
 
 **Linux (cron):**
 ```bash
