@@ -102,7 +102,7 @@ def generate_html():
     resumes = load_json(os.path.join(TMP_DIR, "resume_report.json"), {"resumes_generated": 0})
 
     run_date = evals.get("run_date", datetime.now().strftime("%Y-%m-%d"))
-    leads = evals.get("leads", [])
+    leads = evals.get("leads", evals.get("listings", []))
 
     resume_leads = [l for l in leads if l.get("action") == "generate_resume"]
     report_leads = [l for l in leads if l.get("action") == "report_only"]

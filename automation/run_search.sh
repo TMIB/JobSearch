@@ -212,13 +212,13 @@ PYEOF
     fi
 
     local score
-    score=$(python3 -c "import json; d=json.load(open('$TMP_DIR/evaluated_leads.json')); leads=d.get('leads',[]); print(f'{leads[0][\"final_score\"]:.2f}' if leads else '0')" 2>/dev/null || echo "?")
+    score=$(python3 -c "import json; d=json.load(open('$TMP_DIR/evaluated_leads.json')); leads=d.get('leads', d.get('listings', [])); print(f'{leads[0][\"final_score\"]:.2f}' if leads else '0')" 2>/dev/null || echo "?")
     log "Evaluation complete. Score: $score"
   fi
 
   # ── Generate Resume ──────────────────────────────────────────────────────
   local should_resume
-  should_resume=$(python3 -c "import json; d=json.load(open('$TMP_DIR/evaluated_leads.json')); print('yes' if any(l.get('action')=='generate_resume' for l in d.get('leads',[])) else 'no')" 2>/dev/null || echo "no")
+  should_resume=$(python3 -c "import json; d=json.load(open('$TMP_DIR/evaluated_leads.json')); print('yes' if any(l.get('action')=='generate_resume' for l in d.get('leads', d.get('listings', []))) else 'no')" 2>/dev/null || echo "no")
 
   if [ "$should_resume" = "yes" ]; then
     log ""
@@ -250,7 +250,7 @@ PYEOF
     fi
   else
     local score
-    score=$(python3 -c "import json; d=json.load(open('$TMP_DIR/evaluated_leads.json')); leads=d.get('leads',[]); print(f'{leads[0][\"final_score\"]:.2f}' if leads else '?')" 2>/dev/null || echo "?")
+    score=$(python3 -c "import json; d=json.load(open('$TMP_DIR/evaluated_leads.json')); leads=d.get('leads', d.get('listings', [])); print(f'{leads[0][\"final_score\"]:.2f}' if leads else '?')" 2>/dev/null || echo "?")
     log "Listing scored $score — below resume threshold. No resume generated."
     notify "Job Search" "Listing scored $score — below resume threshold ($(grep 'generate_resume:' "$CONFIG_FILE" | awk '{print $2}')). Check leads/new_leads_report.md" "Pop"
   fi
@@ -348,9 +348,9 @@ main() {
   fi
 
   local resume_count
-  resume_count=$(python3 -c "import json; d=json.load(open('$TMP_DIR/evaluated_leads.json')); print(len([l for l in d.get('leads', []) if l.get('action') == 'generate_resume']))" 2>/dev/null || echo "0")
+  resume_count=$(python3 -c "import json; d=json.load(open('$TMP_DIR/evaluated_leads.json')); print(len([l for l in d.get('leads', d.get('listings', [])) if l.get('action') == 'generate_resume']))" 2>/dev/null || echo "0")
   local report_count
-  report_count=$(python3 -c "import json; d=json.load(open('$TMP_DIR/evaluated_leads.json')); print(len([l for l in d.get('leads', []) if l.get('action') in ('generate_resume', 'report_only')]))" 2>/dev/null || echo "0")
+  report_count=$(python3 -c "import json; d=json.load(open('$TMP_DIR/evaluated_leads.json')); print(len([l for l in d.get('leads', d.get('listings', [])) if l.get('action') in ('generate_resume', 'report_only')]))" 2>/dev/null || echo "0")
   log "Evaluation complete: $resume_count above resume threshold, $report_count worth reporting."
 
   # ── Phase 3: Resume Generation ─────────────────────────────────────────────
@@ -411,7 +411,7 @@ main() {
     companies=$(python3 -c "
 import json
 d = json.load(open('$TMP_DIR/evaluated_leads.json'))
-names = [l['company'] for l in d.get('leads', []) if l.get('action') == 'generate_resume']
+names = [l['company'] for l in d.get('leads', d.get('listings', [])) if l.get('action') == 'generate_resume']
 print(', '.join(names[:5]))
 " 2>/dev/null || echo "check report")
     notify "Job Search: $resume_count New Leads" "$companies" "Glass"
