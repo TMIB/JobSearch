@@ -9,7 +9,6 @@ import os
 import glob
 from datetime import datetime
 
-# Resolve project root relative to this script (automation/ is one level down)
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.environ.get("PROJECT_DIR", os.path.dirname(_SCRIPT_DIR))
 TMP_DIR = os.path.join(PROJECT_DIR, "automation", "tmp")
@@ -102,7 +101,19 @@ def generate_html():
     resumes = load_json(os.path.join(TMP_DIR, "resume_report.json"), {"resumes_generated": 0})
 
     run_date = evals.get("run_date", datetime.now().strftime("%Y-%m-%d"))
-    leads = evals.get("leads", evals.get("listings", []))
+    # Find leads array regardless of field name (eval agent is inconsistent)
+    leads = []
+    for key in ['leads', 'listings', 'results', 'evaluated_leads', 'jobs', 'entries']:
+        val = evals.get(key)
+        if isinstance(val, list) and len(val) > 0 and isinstance(val[0], dict):
+            leads = val
+            break
+    if not leads:
+        for key, val in evals.items():
+            if isinstance(val, list) and len(val) > 0 and isinstance(val[0], dict):
+                if any(k in val[0] for k in ['company', 'title', 'action', 'final_score']):
+                    leads = val
+                    break
 
     resume_leads = [l for l in leads if l.get("action") == "generate_resume"]
     report_leads = [l for l in leads if l.get("action") == "report_only"]

@@ -14,7 +14,7 @@
 set -euo pipefail
 
 # ── Configuration ──────────────────────────────────────────────────────────────
-# Resolve PROJECT_DIR relative to this script's location (automation/ is one level down)
+# Resolve relative to script location
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 AUTOMATION_DIR="${PROJECT_DIR}/automation"
@@ -27,7 +27,7 @@ EVAL_PROMPT="${AUTOMATION_DIR}/eval_agent_prompt.md"
 RESUME_PROMPT="${AUTOMATION_DIR}/resume_agent_prompt.md"
 CONFIG_FILE="${PROJECT_DIR}/search_config.yaml"
 
-CLAUDE_BIN="$(command -v claude || echo "/usr/local/bin/claude")"
+CLAUDE_BIN="/usr/local/bin/claude"
 SERPAPI_KEY="YOUR_SERPAPI_KEY_HERE"
 RUN_DATE=$(date +%Y-%m-%d)
 RUN_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -72,16 +72,7 @@ notify() {
   local title="$1"
   local message="$2"
   local sound="${3:-Glass}"
-  # macOS
-  if command -v osascript &>/dev/null; then
-    osascript -e "display notification \"$message\" with title \"$title\" sound name \"$sound\"" 2>/dev/null || true
-  # Linux (notify-send)
-  elif command -v notify-send &>/dev/null; then
-    notify-send "$title" "$message" 2>/dev/null || true
-  # Fallback: just log it
-  else
-    log "NOTIFICATION: $title — $message"
-  fi
+  osascript -e "display notification \"$message\" with title \"$title\" sound name \"$sound\"" 2>/dev/null || true
 }
 
 preflight_check() {
@@ -175,7 +166,7 @@ for listing in data.get("listings", []):
     listing["action"] = "generate_resume"
     listing["dealbreaker"] = None
     listing["category"] = "qa_leadership"
-    listing["best_template"] = "template_1"
+    listing["best_template"] = "RemoteHunter"
     listing["narrative_angle"] = "To be determined during resume generation"
     leads.append(listing)
 result = {
@@ -212,13 +203,15 @@ PYEOF
     fi
 
     local score
-    score=$(python3 -c "import json; d=json.load(open('$TMP_DIR/evaluated_leads.json')); leads=d.get('leads', d.get('listings', [])); print(f'{leads[0][\"final_score\"]:.2f}' if leads else '0')" 2>/dev/null || echo "?")
+    score=$(python3 "${AUTOMATION_DIR}/parse_eval.py" "$TMP_DIR/evaluated_leads.json" first_score 2>/dev/null || echo "?")
     log "Evaluation complete. Score: $score"
   fi
 
   # ── Generate Resume ──────────────────────────────────────────────────────
   local should_resume
-  should_resume=$(python3 -c "import json; d=json.load(open('$TMP_DIR/evaluated_leads.json')); print('yes' if any(l.get('action')=='generate_resume' for l in d.get('leads', d.get('listings', []))) else 'no')" 2>/dev/null || echo "no")
+  local rc
+  rc=$(python3 "${AUTOMATION_DIR}/parse_eval.py" "$TMP_DIR/evaluated_leads.json" resume_count 2>/dev/null || echo "0")
+  if [ "$rc" != "0" ]; then should_resume="yes"; else should_resume="no"; fi
 
   if [ "$should_resume" = "yes" ]; then
     log ""
@@ -250,7 +243,7 @@ PYEOF
     fi
   else
     local score
-    score=$(python3 -c "import json; d=json.load(open('$TMP_DIR/evaluated_leads.json')); leads=d.get('leads', d.get('listings', [])); print(f'{leads[0][\"final_score\"]:.2f}' if leads else '?')" 2>/dev/null || echo "?")
+    score=$(python3 "${AUTOMATION_DIR}/parse_eval.py" "$TMP_DIR/evaluated_leads.json" first_score 2>/dev/null || echo "?")
     log "Listing scored $score — below resume threshold. No resume generated."
     notify "Job Search" "Listing scored $score — below resume threshold ($(grep 'generate_resume:' "$CONFIG_FILE" | awk '{print $2}')). Check leads/new_leads_report.md" "Pop"
   fi
@@ -318,6 +311,24 @@ main() {
     exit 0
   fi
 
+  # ── Phase 1b: Dedup Pre-screening ──────────────────────────────────────────
+  log ""
+  log "Phase 1b: DEDUP — Pre-screening against seen listings and applications..."
+  log "──────────────────────────────────────────"
+
+  PROJECT_DIR="$PROJECT_DIR" python3 "${AUTOMATION_DIR}/dedup_prescreen.py" 2>&1 | tee -a "$LOG_FILE"
+
+  # Recount after dedup
+  results_count=$(python3 -c "import json; d=json.load(open('$TMP_DIR/search_results.json')); print(len(d.get('listings', [])))" 2>/dev/null || echo "0")
+  log "After dedup: $results_count listings remaining."
+
+  if [ "$results_count" = "0" ]; then
+    log "All listings were duplicates. Nothing new today."
+    notify "Job Search" "No new listings today (all duplicates)." "Pop"
+    cleanup_old_logs
+    exit 0
+  fi
+
   if [ "$SEARCH_ONLY" = true ]; then
     log "Search-only mode. Exiting."
     notify "Job Search" "Search complete: $results_count listings found. Review automation/tmp/search_results.json" "Glass"
@@ -348,9 +359,9 @@ main() {
   fi
 
   local resume_count
-  resume_count=$(python3 -c "import json; d=json.load(open('$TMP_DIR/evaluated_leads.json')); print(len([l for l in d.get('leads', d.get('listings', [])) if l.get('action') == 'generate_resume']))" 2>/dev/null || echo "0")
+  resume_count=$(python3 "${AUTOMATION_DIR}/parse_eval.py" "$TMP_DIR/evaluated_leads.json" resume_count 2>/dev/null || echo "0")
   local report_count
-  report_count=$(python3 -c "import json; d=json.load(open('$TMP_DIR/evaluated_leads.json')); print(len([l for l in d.get('leads', d.get('listings', [])) if l.get('action') in ('generate_resume', 'report_only')]))" 2>/dev/null || echo "0")
+  report_count=$(python3 "${AUTOMATION_DIR}/parse_eval.py" "$TMP_DIR/evaluated_leads.json" report_count 2>/dev/null || echo "0")
   log "Evaluation complete: $resume_count above resume threshold, $report_count worth reporting."
 
   # ── Phase 3: Resume Generation ─────────────────────────────────────────────
@@ -408,12 +419,7 @@ main() {
   # ── Notification ────────────────────────────────────────────────────────────
   if [ "$resume_count" != "0" ]; then
     local companies
-    companies=$(python3 -c "
-import json
-d = json.load(open('$TMP_DIR/evaluated_leads.json'))
-names = [l['company'] for l in d.get('leads', d.get('listings', [])) if l.get('action') == 'generate_resume']
-print(', '.join(names[:5]))
-" 2>/dev/null || echo "check report")
+    companies=$(python3 "${AUTOMATION_DIR}/parse_eval.py" "$TMP_DIR/evaluated_leads.json" companies 2>/dev/null || echo "check report")
     notify "Job Search: $resume_count New Leads" "$companies" "Glass"
   elif [ "$report_count" != "0" ]; then
     notify "Job Search" "$report_count listings worth reviewing (below resume threshold)" "Pop"
@@ -428,22 +434,11 @@ print(', '.join(names[:5]))
 
 # ── PDF Generator ────────────────────────────────────────────────────────────
 
-# Find Chrome binary — macOS, Linux, or Windows (Git Bash/WSL)
-if [ -x "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" ]; then
-  CHROME_BIN="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-elif command -v google-chrome &>/dev/null; then
-  CHROME_BIN="$(command -v google-chrome)"
-elif command -v google-chrome-stable &>/dev/null; then
-  CHROME_BIN="$(command -v google-chrome-stable)"
-elif [ -x "/mnt/c/Program Files/Google/Chrome/Application/chrome.exe" ]; then
-  CHROME_BIN="/mnt/c/Program Files/Google/Chrome/Application/chrome.exe"
-else
-  CHROME_BIN=""
-fi
+CHROME_BIN="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
 generate_pdfs() {
-  if [ -z "$CHROME_BIN" ] || [ ! -x "$CHROME_BIN" ]; then
-    log "WARNING: Chrome not found — skipping PDF generation. Install Chrome for automatic PDF conversion."
+  if [ ! -x "$CHROME_BIN" ]; then
+    log "WARNING: Chrome not found at $CHROME_BIN — skipping PDF generation"
     return
   fi
 
