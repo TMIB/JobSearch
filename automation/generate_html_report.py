@@ -40,14 +40,14 @@ def find_local_files(company, leads_dir):
 
     txts = glob.glob(os.path.join(full, "*.txt"))
     resumes = glob.glob(os.path.join(full, "resume_*.html"))
-    pdfs = glob.glob(os.path.join(full, "YOUR NAME - Resume.pdf"))
+    pdfs = glob.glob(os.path.join(full, "Tracy Lauricella - Resume.pdf"))
     fit = os.path.join(full, "fit_analysis.md")
 
     return {
         "folder": folder,
         "txt": os.path.basename(txts[0]) if txts else None,
         "resume": os.path.basename(resumes[0]) if resumes else None,
-        "pdf": "YOUR NAME - Resume.pdf" if pdfs else None,
+        "pdf": "Tracy Lauricella - Resume.pdf" if pdfs else None,
         "fit": "fit_analysis.md" if os.path.exists(fit) else None,
     }
 
@@ -295,7 +295,10 @@ def generate_html():
             html += '    <details>\n      <summary>Score breakdown</summary>\n      <div class="score-grid">\n'
             for dim, label in zip(dims, dim_labels):
                 s = scores.get(dim, 0)
-                r = reasoning.get(dim, "")
+                if isinstance(reasoning, dict):
+                    r = reasoning.get(dim, "")
+                else:
+                    r = str(reasoning)[:150] if reasoning else ""
                 html += f'        <div class="score-item"><div class="dim-name">{label}</div><div class="dim-score">{s}</div><div class="dim-reason">{escape(str(r)[:150])}</div></div>\n'
             html += '      </div>\n    </details>\n'
             html += '  </div>\n\n'
@@ -314,7 +317,8 @@ def generate_html():
             title = l.get("title", "Unknown")
             loc = l.get("location", "")
             apply_url = l.get("application_url") or l.get("url", "")
-            level_r = (l.get("reasoning") or {}).get("level_match", "")
+            raw_reasoning = l.get("reasoning") or {}
+            level_r = raw_reasoning.get("level_match", "") if isinstance(raw_reasoning, dict) else str(raw_reasoning)[:100]
 
             html += f'    <div class="review-item"><div class="ri-title">'
             if apply_url:
