@@ -39,10 +39,14 @@
         <integer>0</integer>
     </dict>
 
+    <!-- PATH should include wherever `claude` is installed.
+         Claude Code's native installer puts it at ~/.local/bin/claude — plist files do not
+         expand ~, so UPDATE the absolute path below to your home directory if applicable.
+         Run `which claude` to confirm. -->
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
-        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <string>/Users/YOUR_USERNAME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
     </dict>
 
     <!-- UPDATE: absolute paths for log output -->

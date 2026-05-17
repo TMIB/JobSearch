@@ -27,7 +27,25 @@ EVAL_PROMPT="${AUTOMATION_DIR}/eval_agent_prompt.md"
 RESUME_PROMPT="${AUTOMATION_DIR}/resume_agent_prompt.md"
 CONFIG_FILE="${PROJECT_DIR}/search_config.yaml"
 
-CLAUDE_BIN="/usr/local/bin/claude"
+# Resolve claude binary location agnostically (native install, npm global, Homebrew, etc.)
+# Falls back to common known locations if PATH lookup fails (e.g. launchd minimal PATH).
+resolve_claude_bin() {
+  if command -v claude >/dev/null 2>&1; then
+    command -v claude
+    return
+  fi
+  for candidate in \
+    "$HOME/.local/bin/claude" \
+    "/usr/local/bin/claude" \
+    "/opt/homebrew/bin/claude"; do
+    if [ -x "$candidate" ]; then
+      echo "$candidate"
+      return
+    fi
+  done
+  echo ""
+}
+CLAUDE_BIN="$(resolve_claude_bin)"
 SERPAPI_KEY="YOUR_SERPAPI_KEY_HERE"
 RUN_DATE=$(date +%Y-%m-%d)
 RUN_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -78,9 +96,11 @@ notify() {
 preflight_check() {
   local errors=0
 
-  if [ ! -x "$CLAUDE_BIN" ]; then
-    log "ERROR: claude binary not found at $CLAUDE_BIN"
+  if [ -z "$CLAUDE_BIN" ] || [ ! -x "$CLAUDE_BIN" ]; then
+    log "ERROR: claude binary not found in PATH or common install locations (~/.local/bin, /usr/local/bin, /opt/homebrew/bin)"
     errors=$((errors + 1))
+  else
+    log "Using claude binary: $CLAUDE_BIN"
   fi
 
   for f in "$SEARCH_PROMPT" "$EVAL_PROMPT" "$RESUME_PROMPT" "$CONFIG_FILE"; do
