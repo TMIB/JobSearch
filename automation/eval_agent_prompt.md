@@ -153,6 +153,27 @@ For listings older than 21 days, add a `"stale_risk": "high"` field. For listing
 
 ## Output Format
 
+**CRITICAL — schema for `reasoning` and `scores`:**
+The `reasoning` field **must always be an object with one key per dimension** (`level_match`, `role_category`, `location_fit`, `coding_interview_risk`, `narrative_fit`, `company_maturity`). Same for `scores`. This applies to **every lead**, including dealbreakers, duplicates, and ignored listings — not just above-threshold ones. Downstream report generators iterate these dimensions and will crash on any other shape.
+
+Do **not** collapse `reasoning` into a single narrative string. Do not write `"reasoning": "Strong fit overall, but on-site NYC..."`. The string-summary format is a regression and breaks the markdown report generator.
+
+Correct shape:
+```json
+"reasoning": {
+  "level_match": "...",
+  "role_category": "...",
+  "location_fit": "...",
+  "coding_interview_risk": "...",
+  "narrative_fit": "...",
+  "company_maturity": "..."
+}
+```
+
+For dealbreaker/duplicate rejections where most dimensions don't matter, still emit the object shape — fill the relevant dimension(s) with the rejection reason and leave others as empty strings.
+
+---
+
 Write to `automation/tmp/evaluated_leads.json`:
 ```json
 {

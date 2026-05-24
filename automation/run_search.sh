@@ -577,13 +577,26 @@ if resume_leads:
         print(f"- **Category:** {l.get('category', 'Unknown')}")
         print(f"- **Application:** {l.get('application_url', l.get('url', 'N/A'))}")
         scores = l.get("scores", {})
+        if not isinstance(scores, dict):
+            scores = {}
         reasoning = l.get("reasoning", {})
-        print(f"\n| Dimension | Score | Reasoning |")
-        print(f"|-----------|-------|-----------|")
-        for dim in ["level_match", "role_category", "location_fit", "coding_interview_risk", "narrative_fit", "company_maturity"]:
-            s = scores.get(dim, 0)
-            r = reasoning.get(dim, "")
-            print(f"| {dim} | {s:.1f} | {r} |")
+        reasoning_is_dict = isinstance(reasoning, dict)
+        if reasoning_is_dict:
+            print(f"\n| Dimension | Score | Reasoning |")
+            print(f"|-----------|-------|-----------|")
+            for dim in ["level_match", "role_category", "location_fit", "coding_interview_risk", "narrative_fit", "company_maturity"]:
+                s = scores.get(dim, 0)
+                r = reasoning.get(dim, "")
+                print(f"| {dim} | {s:.1f} | {r} |")
+        else:
+            # Eval agent returned reasoning as a flat string (regression-resistant fallback)
+            print(f"\n**Reasoning:** {reasoning}")
+            if scores:
+                print(f"\n| Dimension | Score |")
+                print(f"|-----------|-------|")
+                for dim in ["level_match", "role_category", "location_fit", "coding_interview_risk", "narrative_fit", "company_maturity"]:
+                    s = scores.get(dim, 0)
+                    print(f"| {dim} | {s:.1f} |")
         angle = l.get("narrative_angle", "")
         if angle:
             print(f"\n**Narrative angle:** {angle}")
@@ -595,7 +608,10 @@ if report_leads:
         score = l.get("final_score", 0)
         print(f"- **{l.get('company', '?')} — {l.get('title', '?')}** (Score: {score:.2f}) — {l.get('location', '?')} — {l.get('url', '')}")
         reasoning = l.get("reasoning", {})
-        level_r = reasoning.get("level_match", "")
+        if isinstance(reasoning, dict):
+            level_r = reasoning.get("level_match", "")
+        else:
+            level_r = str(reasoning)[:150] if reasoning else ""
         if level_r:
             print(f"  - Level: {level_r}")
     print()
