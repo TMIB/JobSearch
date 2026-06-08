@@ -124,6 +124,19 @@ After scoring all dimensions, apply this cap: **if location_fit scores 0.2 or be
 
 Exception: if the role is truly extraordinary (C-suite, exceptional compensation, or a once-in-a-career opportunity), note it as `"location_override_candidate": true` and let the candidate decide.
 
+## Unconfirmed Location → Report Only, No Resume
+
+<!-- CUSTOMIZE: Adjust based on whether you require remote. Remove if you're location-flexible. -->
+
+**Resume generation requires a CONFIRMED acceptable location** (e.g. genuinely remote, or your target metro). Aggregator and job-board listings (BeBee, Jobgether, Lensa, JobLeads, raw Workday "United States", etc.) frequently state a vague, rewritten, or missing location that turns out to be on-site in another state. Generating a tailored resume for these wastes effort.
+
+Rule: **only emit `action: "generate_resume"` when `location_fit >= 0.8`** AND the location is stated explicitly enough to trust. If location is uncertain — bare "United States" with no explicit "Remote", an aggregator-rewritten cadence like "Onsite ~2 days/month", or any out-of-target city/state where remote is not explicitly offered — then:
+- set `action: "report_only"` regardless of final score,
+- add `"location_unconfirmed": true`,
+- state in the `location_fit` reasoning that the location must be verified before applying.
+
+Do NOT inflate an aggregator-rewritten or bare "United States" location above `location_fit: 0.5` — treat it as genuinely uncertain. This surfaces the lead in "Worth Reviewing" so the candidate can verify the location and request a resume manually, without burning resume-generation effort on roles that are likely on-site elsewhere.
+
 ## Dealbreaker Check
 
 Before scoring, check each listing against the dealbreakers in search_config.yaml. Some are keyword-based, others require reasoning:
