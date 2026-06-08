@@ -8,6 +8,14 @@
     cp automation/com.jobsearch.plist ~/Library/LaunchAgents/
     launchctl load ~/Library/LaunchAgents/com.jobsearch.plist
 
+  IMPORTANT (macOS laptops): launchd fires scheduled jobs during DarkWake, where
+  the Mac will not stay awake long enough for the long evaluation API call and it
+  times out. Two mitigations are baked in below — `caffeinate` keeps the Mac awake
+  for the run, and RunAtLoad catches up a run missed while asleep/off. For full
+  reliability, also schedule a power-on wake a couple minutes before the run (needs
+  sudo, one-time):
+    sudo pmset repeat wakeorpoweron MTWRFSU 06:58:00   # match to your run time
+
   For Linux, use cron instead:
     0 7 * * * /path/to/your/project/automation/run_search.sh >> /path/to/your/project/automation/logs/cron.log 2>&1
 
@@ -19,8 +27,15 @@
     <key>Label</key>
     <string>com.jobsearch</string>
 
+    <!-- caffeinate keeps the Mac fully awake for the whole run. launchd fires this
+         job during DarkWake/maintenance-sleep, which otherwise stalls the long
+         evaluation API call. -i no idle sleep, -m no disk sleep, -s no system sleep (AC). -->
     <key>ProgramArguments</key>
     <array>
+        <string>/usr/bin/caffeinate</string>
+        <string>-i</string>
+        <string>-m</string>
+        <string>-s</string>
         <string>/bin/bash</string>
         <!-- UPDATE: absolute path to run_search.sh -->
         <string>/path/to/your/project/automation/run_search.sh</string>
@@ -55,7 +70,10 @@
     <key>StandardErrorPath</key>
     <string>/path/to/your/project/automation/logs/launchd_stderr.log</string>
 
+    <!-- Run on load (login/boot) to catch up if the scheduled run was missed while
+         the Mac was asleep/off. run_search.sh's catch-up guard exits early if today's
+         report already exists, so this won't duplicate a successful scheduled run. -->
     <key>RunAtLoad</key>
-    <false/>
+    <true/>
 </dict>
 </plist>

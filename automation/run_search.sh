@@ -6,6 +6,8 @@
 # Usage:
 #   ./automation/run_search.sh                    # Full daily pipeline
 #   ./automation/run_search.sh --search-only      # Search only, no eval or resume
+#   ./automation/run_search.sh --skip-search      # Reuse existing tmp/search_results.json; start at eval (recovery after a timeout)
+#   ./automation/run_search.sh --force            # Run even if today's report already exists (overrides catch-up guard)
 #   ./automation/run_search.sh --skip-resume      # Search + eval, no resume generation
 #   ./automation/run_search.sh --url <URL>        # Process a single listing URL (fetch → eval → resume)
 #   ./automation/run_search.sh --url <URL> --skip-eval  # Fetch + resume, skip evaluation (assume it's a good match)
@@ -56,14 +58,18 @@ BUDGET_CAP=$(grep 'budget_cap_usd:' "$CONFIG_FILE" 2>/dev/null | awk '{print $2}
 
 # ── Flags ──────────────────────────────────────────────────────────────────────
 SEARCH_ONLY=false
+SKIP_SEARCH=false
 SKIP_RESUME=false
 SKIP_EVAL=false
+FORCE=false
 SINGLE_URL=""
 for arg in "$@"; do
   case $arg in
     --search-only) SEARCH_ONLY=true ;;
+    --skip-search) SKIP_SEARCH=true ;;
     --skip-resume) SKIP_RESUME=true ;;
     --skip-eval) SKIP_EVAL=true ;;
+    --force) FORCE=true ;;
     --url) ;; # handled below
     *) # capture the URL value after --url
       if [ "${prev_arg:-}" = "--url" ]; then
@@ -91,6 +97,34 @@ notify() {
   local message="$2"
   local sound="${3:-Glass}"
   osascript -e "display notification \"$message\" with title \"$title\" sound name \"$sound\"" 2>/dev/null || true
+}
+
+# Run an agent command with a wall-clock timeout and retries until the expected
+# output file appears. Guards against the long-lived API streaming call stalling
+# (the DarkWake/network-drop failure mode). macOS lacks `timeout`, so this uses a
+# portable background-watchdog. The agent's own output is appended to $LOG_FILE.
+#   Usage: run_agent_with_retry <timeout_secs> <max_attempts> <output_file> <cmd...>
+run_agent_with_retry() {
+  local secs="$1" max="$2" outfile="$3"; shift 3
+  local attempt=1 cmd_pid watch_pid
+  while [ "$attempt" -le "$max" ]; do
+    rm -f "$outfile"
+    "$@" >> "$LOG_FILE" 2>&1 &
+    cmd_pid=$!
+    ( sleep "$secs"; kill -TERM "$cmd_pid" 2>/dev/null; sleep 30; kill -KILL "$cmd_pid" 2>/dev/null ) &
+    watch_pid=$!
+    wait "$cmd_pid" 2>/dev/null || true
+    kill "$watch_pid" 2>/dev/null || true
+    wait "$watch_pid" 2>/dev/null || true
+    if [ -f "$outfile" ]; then
+      [ "$attempt" -gt 1 ] && log "  Succeeded on attempt $attempt/$max."
+      return 0
+    fi
+    log "  Attempt $attempt/$max: no $(basename "$outfile") produced (timed out after ${secs}s or failed)."
+    attempt=$((attempt + 1))
+    [ "$attempt" -le "$max" ] && sleep 20
+  done
+  return 1
 }
 
 preflight_check() {
@@ -292,10 +326,30 @@ main() {
   log "Job Search Pipeline — $RUN_DATE"
   log "═══════════════════════════════════════════════════"
 
+  # Catch-up guard: with RunAtLoad=true, this script also runs at login/boot so a
+  # 6am run missed while the Mac was asleep/off self-heals. But if today's report
+  # already exists, a login-triggered invocation is redundant — skip it. The
+  # scheduled 6am run isn't affected (no report for today exists yet at 6am).
+  # Bypassed by --skip-search (recovery), --search-only, and --force.
+  if [ "$SKIP_SEARCH" = false ] && [ "$SEARCH_ONLY" = false ] && [ "$FORCE" = false ]; then
+    if [ -f "$LEADS_DIR/new_leads_report.md" ]; then
+      local report_date
+      report_date=$(stat -f '%Sm' -t '%Y-%m-%d' "$LEADS_DIR/new_leads_report.md" 2>/dev/null || echo "")
+      if [ "$report_date" = "$RUN_DATE" ]; then
+        log "Today's report ($report_date) already exists — skipping redundant run. Use --force to re-run."
+        cleanup_old_logs
+        exit 0
+      fi
+    fi
+  fi
+
   preflight_check
 
-  # Clean up previous tmp files
-  rm -f "$TMP_DIR"/search_results.json "$TMP_DIR"/evaluated_leads.json "$TMP_DIR"/resume_report.json
+  # Clean up previous tmp files (preserve search_results.json when reusing it via --skip-search)
+  rm -f "$TMP_DIR"/evaluated_leads.json "$TMP_DIR"/resume_report.json
+  if [ "$SKIP_SEARCH" = false ]; then
+    rm -f "$TMP_DIR"/search_results.json
+  fi
 
   # ── Phase 1: Search ────────────────────────────────────────────────────────
   log ""
@@ -304,15 +358,20 @@ main() {
 
   local search_budget=$(echo "$BUDGET_CAP * 0.25" | bc)
 
-  SERPAPI_KEY="$SERPAPI_KEY" "$CLAUDE_BIN" -p "Execute the search agent workflow. Today's date is $RUN_DATE. Read the search agent prompt, config, queries, and seen listings, then search for job listings using SerpAPI (via ./automation/serpapi_search.sh) as the primary source and WebSearch as supplementary. Write results to automation/tmp/search_results.json." \
-    --append-system-prompt "$(cat "$SEARCH_PROMPT")" \
-    --model sonnet \
-    --allowed-tools "WebSearch WebFetch Read Write Bash Glob Grep" \
-    --permission-mode bypassPermissions \
-    --max-budget-usd "$search_budget" \
-    --no-session-persistence \
-    --add-dir "$PROJECT_DIR" \
-    >> "$LOG_FILE" 2>&1
+  if [ "$SKIP_SEARCH" = true ]; then
+    log "Skipping search (--skip-search): reusing existing automation/tmp/search_results.json."
+  else
+    export SERPAPI_KEY
+    run_agent_with_retry 2400 2 "$TMP_DIR/search_results.json" \
+      "$CLAUDE_BIN" -p "Execute the search agent workflow. Today's date is $RUN_DATE. Read the search agent prompt, config, queries, and seen listings, then search for job listings using SerpAPI (via ./automation/serpapi_search.sh) as the primary source and WebSearch as supplementary. Write results to automation/tmp/search_results.json." \
+      --append-system-prompt "$(cat "$SEARCH_PROMPT")" \
+      --model sonnet \
+      --allowed-tools "WebSearch WebFetch Read Write Bash Glob Grep" \
+      --permission-mode bypassPermissions \
+      --max-budget-usd "$search_budget" \
+      --no-session-persistence \
+      --add-dir "$PROJECT_DIR" || true
+  fi
 
   if [ ! -f "$TMP_DIR/search_results.json" ]; then
     log "ERROR: Search agent did not produce search_results.json"
@@ -336,7 +395,11 @@ main() {
   log "Phase 1b: DEDUP — Pre-screening against seen listings and applications..."
   log "──────────────────────────────────────────"
 
-  PROJECT_DIR="$PROJECT_DIR" python3 "${AUTOMATION_DIR}/dedup_prescreen.py" 2>&1 | tee -a "$LOG_FILE"
+  if [ "$SKIP_SEARCH" = true ]; then
+    log "Skipping dedup (--skip-search): search_results.json already pre-screened."
+  else
+    PROJECT_DIR="$PROJECT_DIR" python3 "${AUTOMATION_DIR}/dedup_prescreen.py" 2>&1 | tee -a "$LOG_FILE"
+  fi
 
   # Recount after dedup
   results_count=$(python3 -c "import json; d=json.load(open('$TMP_DIR/search_results.json')); print(len(d.get('listings', [])))" 2>/dev/null || echo "0")
@@ -362,15 +425,15 @@ main() {
 
   local eval_budget=$(echo "$BUDGET_CAP * 0.25" | bc)
 
-  "$CLAUDE_BIN" -p "Execute the evaluation agent workflow. Today's date is $RUN_DATE. Read the evaluation agent prompt, config, search results, feedback, and seen listings. Score each listing and write results to automation/tmp/evaluated_leads.json. Also update leads/seen_listings.jsonl." \
+  run_agent_with_retry 3600 2 "$TMP_DIR/evaluated_leads.json" \
+    "$CLAUDE_BIN" -p "Execute the evaluation agent workflow. Today's date is $RUN_DATE. Read the evaluation agent prompt, config, search results, feedback, and seen listings. Score each listing and write results to automation/tmp/evaluated_leads.json. Also update leads/seen_listings.jsonl." \
     --append-system-prompt "$(cat "$EVAL_PROMPT")" \
     --model sonnet \
     --allowed-tools "Read Write Bash Glob Grep" \
     --permission-mode bypassPermissions \
     --max-budget-usd "$eval_budget" \
     --no-session-persistence \
-    --add-dir "$PROJECT_DIR" \
-    >> "$LOG_FILE" 2>&1
+    --add-dir "$PROJECT_DIR" || true
 
   if [ ! -f "$TMP_DIR/evaluated_leads.json" ]; then
     log "ERROR: Evaluation agent did not produce evaluated_leads.json"
@@ -392,15 +455,15 @@ main() {
 
     local resume_budget=$(echo "$BUDGET_CAP * 0.50" | bc)
 
-    "$CLAUDE_BIN" -p "Execute the resume tailoring agent workflow. Today's date is $RUN_DATE. Read the resume agent prompt, evaluated leads, CLAUDE.md, and the appropriate HTML templates. For each lead with action 'generate_resume', create the folder, save the listing, write the fit analysis, and generate the tailored resume HTML. Write a summary to automation/tmp/resume_report.json." \
+    run_agent_with_retry 3600 1 "$TMP_DIR/resume_report.json" \
+      "$CLAUDE_BIN" -p "Execute the resume tailoring agent workflow. Today's date is $RUN_DATE. Read the resume agent prompt, evaluated leads, CLAUDE.md, and the appropriate HTML templates. For each lead with action 'generate_resume', create the folder, save the listing, write the fit analysis, and generate the tailored resume HTML. Write a summary to automation/tmp/resume_report.json." \
       --append-system-prompt "$(cat "$RESUME_PROMPT")" \
       --model opus \
       --allowed-tools "Read Write Bash Glob Grep" \
       --permission-mode bypassPermissions \
       --max-budget-usd "$resume_budget" \
       --no-session-persistence \
-      --add-dir "$PROJECT_DIR" \
-      >> "$LOG_FILE" 2>&1
+      --add-dir "$PROJECT_DIR" || true
 
     if [ -f "$TMP_DIR/resume_report.json" ]; then
       local resumes_generated

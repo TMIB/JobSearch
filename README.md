@@ -90,6 +90,13 @@ Place your current resume PDF in the project root as a reference.
 
 # Skip evaluation for a URL (you already know it's a good fit)
 ./automation/run_search.sh --url "https://example.com/job/12345" --skip-eval
+
+# Recover a run that died after search (e.g. an eval timeout) — reuses the
+# existing search results and restarts at evaluation, no re-search / no re-spend
+./automation/run_search.sh --skip-search
+
+# Force a full run even if today's report already exists
+./automation/run_search.sh --force
 ```
 
 After the first run, open `leads/new_leads_report.html` in your browser and review the results with Claude. Flag what's wrong — this is where the tuning begins.
@@ -125,7 +132,13 @@ bash C:\path\to\your\project\automation\run_search.sh
 ```
 Requires Git Bash or WSL.
 
-Runs daily at 7 AM. Edit the plist to change the time. If your Mac is asleep, it fires when it wakes.
+Runs daily at 7 AM. Edit the plist to change the time.
+
+**macOS sleep gotcha (important):** launchd fires scheduled jobs while the Mac is in *DarkWake* (maintenance sleep), where it won't stay awake long enough for the multi-minute evaluation API call — the connection stalls and the run times out before producing a report. The shipped plist mitigates this two ways: it wraps the job in `caffeinate` (keeps the Mac awake for the whole run) and sets `RunAtLoad` (a run missed while the Mac was fully asleep/off is caught up at next login/boot; the script's catch-up guard skips it if today's report already exists). For maximum reliability on a laptop, also schedule a power-on wake a couple minutes before your run time (one-time, needs sudo):
+```bash
+sudo pmset repeat wakeorpoweron MTWRFSU 06:58:00   # ~2 min before a 7 AM run
+```
+If a scheduled run ever still fails partway, recover it without re-searching: `./automation/run_search.sh --skip-search`.
 
 ## Daily Workflow
 
