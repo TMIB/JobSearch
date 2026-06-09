@@ -137,6 +137,18 @@ Rule: **only emit `action: "generate_resume"` when `location_fit >= 0.8`** AND t
 
 Do NOT inflate an aggregator-rewritten or bare "United States" location above `location_fit: 0.5` — treat it as genuinely uncertain. This surfaces the lead in "Worth Reviewing" so the candidate can verify the location and request a resume manually, without burning resume-generation effort on roles that are likely on-site elsewhere.
 
+## High Coding-Interview Risk → Report Only, No Resume
+
+<!-- CUSTOMIZE: Keep this if the candidate cannot/does not want to pass live-coding or
+     system-design interviews (e.g. a leader who architects rather than codes day-to-day).
+     Remove or relax if hands-on coding interviews are acceptable. -->
+
+If the candidate cannot pass live-coding or system-design technical assessments, a high coding-interview risk is effectively a dealbreaker for resume generation no matter how strong the other dimensions are. The 0.15 weight on `coding_interview_risk` is not enough on its own to keep these below the resume threshold, so apply a hard gate.
+
+Rule: **if `coding_interview_risk <= 0.2` (live coding, system-design rounds, "hands-on technical leader" who codes), set `action: "report_only"`** regardless of final score, and add `"coding_risk_high": true`. State the concern in the `coding_interview_risk` reasoning.
+
+This especially catches core software-engineering leadership titles — "Director of Engineering", "Engineering Director", "Director of Software Engineering" — at FAANG-adjacent companies, which expect a hands-on technical leader and run system-design rounds for Directors. Surface them in "Worth Reviewing" so the candidate can decide, but do not generate a resume.
+
 ## Dealbreaker Check
 
 Before scoring, check each listing against the dealbreakers in search_config.yaml. Some are keyword-based, others require reasoning:
