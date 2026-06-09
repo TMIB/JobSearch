@@ -149,6 +149,19 @@ Rule: **if `coding_interview_risk <= 0.2` (live coding, system-design rounds, "h
 
 This especially catches core software-engineering leadership titles — "Director of Engineering", "Engineering Director", "Director of Software Engineering" — at FAANG-adjacent companies, which expect a hands-on technical leader and run system-design rounds for Directors. Surface them in "Worth Reviewing" so the candidate can decide, but do not generate a resume.
 
+## Applied-Research / Advanced-Credential Roles → Report Only, No Resume (do NOT exclude)
+
+<!-- CUSTOMIZE: Adjust to the candidate's credentials. The point is to avoid auto-
+     generating resumes for roles whose hard requirements (degree + hands-on research
+     depth) are genuine gaps, while STILL surfacing them for manual review. -->
+
+Some roles are a poor resume-generation target even when the title and location look great: **applied-research / research-scientist leadership** roles that pair a hard advanced-credential requirement with hands-on research depth the candidate lacks. Signals (need a cluster, not just one):
+- "Applied Research", "Research Scientist", "Research Director", or a publication/patent-record expectation;
+- an advanced degree (Master's/PhD/Post-Doc) **required** — phrased as a hard requirement, not "or equivalent experience";
+- hands-on research/ML depth: building/training models, multi-modal AI, sensor fusion, generative model development, deep ML frameworks (PyTorch, CUDA, OpenVino), research tooling.
+
+When a role clearly fits this cluster and the candidate lacks the credential/depth, set **`action: "report_only"`** regardless of final score and add `"research_credential_gap": true`, noting the reason. **Do NOT exclude or score these as dealbreakers — surface them in "Worth Reviewing"** so the candidate can pursue an exceptional one manually; just don't auto-generate a resume that leads with gaps. Note: when a degree is listed as "or equivalent experience," a long career typically satisfies it — do not gate on the degree alone.
+
 ## Dealbreaker Check
 
 Before scoring, check each listing against the dealbreakers in search_config.yaml. Some are keyword-based, others require reasoning:
