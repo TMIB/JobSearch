@@ -33,7 +33,7 @@ Four specialized agents, each with its own tunable prompt:
 
 ### Prerequisites
 
-- [Claude Code CLI](https://claude.ai/code) installed and authenticated
+- [Claude Code CLI](https://code.claude.com/docs/en/quickstart) installed and authenticated
 - [SerpAPI](https://serpapi.com) account (free tier: 250 searches/month, or $25/month for 1,000)
 - Google Chrome (for headless PDF generation — auto-detected on macOS, Linux, and WSL)
 - Python 3 (for report generation and JSON parsing)
