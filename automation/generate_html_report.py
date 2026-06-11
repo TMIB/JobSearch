@@ -196,6 +196,8 @@ def generate_html():
     color: #0071e3; text-decoration: none;
   }}
   .apply-link:hover {{ text-decoration: underline; }}
+  .apply-link.unverified {{ color: #b26a00; }}
+  .unverified-warn {{ color: #b26a00; font-size: 11px; font-weight: 600; }}
   .local-links {{ display: flex; gap: 12px; margin-top: 6px; font-size: 12px; }}
   .local-links a {{
     color: #666; text-decoration: none; background: #f0f0f0;
@@ -287,7 +289,10 @@ def generate_html():
                 html += f'    <div class="narrative">{escape(narrative)}</div>\n'
 
             if apply_url:
-                html += f'    <a class="apply-link" href="{escape(apply_url)}" target="_blank">Apply &rarr;</a>\n'
+                if l.get("application_url_unverified"):
+                    html += f'    <a class="apply-link unverified" href="{escape(apply_url)}" target="_blank">Apply &rarr;</a> <span class="unverified-warn">⚠ unverified link — confirm it opens this exact role before applying</span>\n'
+                else:
+                    html += f'    <a class="apply-link" href="{escape(apply_url)}" target="_blank">Apply &rarr;</a>\n'
 
             html += local_links_html(company, LEADS_DIR) + '\n'
 
@@ -326,6 +331,8 @@ def generate_html():
             html += f'<strong>{escape(company)}</strong> — {escape(title)}'
             if apply_url:
                 html += '</a>'
+            if l.get("application_url_unverified"):
+                html += ' <span class="unverified-warn">⚠ unverified link</span>'
             if level_r:
                 html += f' <span style="color:#888;font-size:11px">— {escape(str(level_r)[:100])}</span>'
             html += f'</div><div class="ri-meta">{score:.2f} &middot; {escape(loc)}</div></div>\n'

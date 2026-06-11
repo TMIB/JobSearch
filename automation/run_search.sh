@@ -441,6 +441,13 @@ main() {
     exit 1
   fi
 
+  # ── Phase 2b: Reconcile apply URLs ─────────────────────────────────────────
+  # The eval agent (an LLM) can corrupt application_url values (mangling LinkedIn
+  # job IDs). Deterministically restore them from search_results.json before
+  # resume generation and the report consume them.
+  log "Reconciling apply URLs against search results..."
+  TMP_DIR="$TMP_DIR" python3 "${AUTOMATION_DIR}/reconcile_urls.py" 2>&1 | tee -a "$LOG_FILE"
+
   local resume_count
   resume_count=$(python3 "${AUTOMATION_DIR}/parse_eval.py" "$TMP_DIR/evaluated_leads.json" resume_count 2>/dev/null || echo "0")
   local report_count
@@ -638,7 +645,10 @@ if resume_leads:
         print(f"- **Location:** {l.get('location', 'Unknown')}")
         print(f"- **Compensation:** {l.get('compensation', 'Not listed')}")
         print(f"- **Category:** {l.get('category', 'Unknown')}")
-        print(f"- **Application:** {l.get('application_url', l.get('url', 'N/A'))}")
+        _app = l.get('application_url') or l.get('url') or 'N/A'
+        if l.get('application_url_unverified'):
+            _app += "  ⚠️ UNVERIFIED LINK — confirm it opens this exact role before applying"
+        print(f"- **Application:** {_app}")
         scores = l.get("scores", {})
         if not isinstance(scores, dict):
             scores = {}
@@ -669,7 +679,10 @@ if report_leads:
     print("## Worth Reviewing (Below Resume Threshold)\n")
     for l in sorted(report_leads, key=lambda x: x.get("final_score", 0), reverse=True):
         score = l.get("final_score", 0)
-        print(f"- **{l.get('company', '?')} — {l.get('title', '?')}** (Score: {score:.2f}) — {l.get('location', '?')} — {l.get('url', '')}")
+        _u = l.get('application_url') or l.get('url', '')
+        if l.get('application_url_unverified'):
+            _u += " ⚠️ UNVERIFIED"
+        print(f"- **{l.get('company', '?')} — {l.get('title', '?')}** (Score: {score:.2f}) — {l.get('location', '?')} — {_u}")
         reasoning = l.get("reasoning", {})
         if isinstance(reasoning, dict):
             level_r = reasoning.get("level_match", "")

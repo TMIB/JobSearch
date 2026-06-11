@@ -275,3 +275,4 @@ Also append each evaluated listing (including duplicates and rejections) to `lea
 - Be honest about uncertainty. If you can't determine something, say so and use a middle score.
 - The dealbreaker check should be strict. If in doubt, it's NOT a dealbreaker — let the scoring handle gradations.
 - Include the `best_template`, `category`, and `narrative_angle` fields for every above-threshold lead. The resume agent needs these.
+- **Copy `application_url` and `url` BYTE-FOR-BYTE from the corresponding listing in search_results.json. Never retype, summarize, or regenerate a URL from memory — in particular never alter the trailing numeric job ID in a LinkedIn URL, and never reuse one listing's ID on another listing.** Each listing's URL is unique; corrupting it sends the candidate to the wrong job. (A deterministic post-processing step also re-verifies these, but get them right here.)
