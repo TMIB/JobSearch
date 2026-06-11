@@ -128,7 +128,9 @@ Exception: if the role is truly extraordinary (C-suite, exceptional compensation
 
 <!-- CUSTOMIZE: Adjust based on whether you require remote. Remove if you're location-flexible. -->
 
-**Resume generation requires a CONFIRMED acceptable location** (e.g. genuinely remote, or your target metro). Aggregator and job-board listings (BeBee, Jobgether, Lensa, JobLeads, raw Workday "United States", etc.) frequently state a vague, rewritten, or missing location that turns out to be on-site in another state. Generating a tailored resume for these wastes effort.
+**Resume generation requires a CONFIRMED acceptable location** (e.g. genuinely remote and work-authorization-eligible in the candidate's country, or your target metro). Aggregator and job-board listings (BeBee, Jobgether, Lensa, JobLeads, AiDOOS, raw Workday "United States", etc.) frequently state a vague, rewritten, or missing location that turns out to be on-site in another state — or remote in a different *country*. Generating a tailored resume for these wastes effort.
+
+Some aggregators (e.g. AiDOOS) are particularly unreliable: they flatten a country-scoped "Remote - <country>" role to "Remote (Anywhere)" and force a signup to view/apply. When the source is one of these, do NOT trust its location field — find and verify the canonical listing (company careers / Lever / Greenhouse) before scoring.
 
 Rule: **only emit `action: "generate_resume"` when `location_fit >= 0.8`** AND the location is stated explicitly enough to trust. If location is uncertain — bare "United States" with no explicit "Remote", an aggregator-rewritten cadence like "Onsite ~2 days/month", or any out-of-target city/state where remote is not explicitly offered — then:
 - set `action: "report_only"` regardless of final score,
@@ -136,6 +138,10 @@ Rule: **only emit `action: "generate_resume"` when `location_fit >= 0.8`** AND t
 - state in the `location_fit` reasoning that the location must be verified before applying.
 
 Do NOT inflate an aggregator-rewritten or bare "United States" location above `location_fit: 0.5` — treat it as genuinely uncertain. This surfaces the lead in "Worth Reviewing" so the candidate can verify the location and request a resume manually, without burning resume-generation effort on roles that are likely on-site elsewhere.
+
+## Country-Scoped Remote (wrong country) → Dealbreaker
+
+"Remote" is only valuable if the candidate is **work-authorization-eligible** in that location's country. A listing whose location is scoped to a country the candidate can't work in — "Remote - India", "Remote - UK", "Remote (EMEA)", "Remote, Canada", a foreign `addressCountry`/`addressLocality`, or "Remote" paired with a country-specific office/entity — requires in-country authorization and is **not viable**. Treat this as a **dealbreaker**: score `location_fit: 0.0`, set `action: "ignore"`, and note the dealbreaker. The trap is a bare "Remote" or aggregator "Anywhere" that, on the canonical listing, is actually country-scoped. When the workplace type is "Remote" but the location names a country the candidate can't work in, the **location wins**.
 
 ## High Coding-Interview Risk → Report Only, No Resume
 
