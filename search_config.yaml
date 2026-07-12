@@ -1,0 +1,73 @@
+# Job Search Agent Configuration
+# Edit this file to tune scoring, thresholds, and dealbreakers.
+# Changes take effect on the next daily run.
+
+search:
+  max_queries_per_run: 12        # Rotates through queries.txt; full coverage every ~4 days
+  max_results_per_query: 10      # Top results to consider per query
+  query_source: queries.txt
+
+scoring:
+  # Weighted dimensions (must sum to 1.0)
+  # Adjust these to shift what the evaluation agent prioritizes.
+  dimensions:
+    level_match: 0.25            # Director/VP/Senior Manager scope. NOT title matching —
+                                 # reason about actual seniority, org size, budget authority.
+                                 # "Director" at a 5-person startup ≠ Director at Salesforce.
+    role_category: 0.20          # Alignment to target categories (see below)
+    location_fit: 0.15           # Remote = 1.0, [YOUR CITY] = 1.0, hybrid [YOUR STATE] = 0.7,
+                                 # requires relocation = 0.0
+    coding_interview_risk: 0.15  # INVERTED: high risk of coding interview = LOW score.
+                                 # Read between the lines — "hands-on technical leader" at
+                                 # a startup = likely coding interview.
+    narrative_fit: 0.15          # How well your signature stories/achievements (as defined
+                                 # in your career strategy guide) align with the role's needs.
+    company_maturity: 0.10       # Enterprise/fintech/healthcare/defense > early-stage startup.
+                                 # Mature engineering cultures are less likely to gatekeep
+                                 # on coding interviews and more likely to value experience.
+
+  # Target role categories (in priority order)
+  # CUSTOMIZE: Replace with your own categories from your career strategy guide.
+  # These keys should match the categories used in resume.template_map below.
+  target_categories:
+    - category_1                 # e.g., your top-priority role category and its common titles
+    - category_2                 # e.g., a strong secondary category
+    - category_3                 # e.g., an adjacent or stretch category
+
+thresholds:
+  generate_resume: 0.65          # Score >= this → create folder, save listing, generate resume
+  report_only: 0.40              # Score >= this but < generate_resume → include in report
+  ignore_below: 0.25             # Score < this → log to seen_listings only, don't mention
+
+dealbreakers:
+  # Auto-reject regardless of score. Case-insensitive substring matching + AI reasoning.
+  - "security clearance required"
+  - "TS/SCI"
+  - "entry level"
+  - "junior"
+  - "intern"
+  - "associate level"
+  - "requires relocation"        # Unless to [YOUR CITY/STATE]
+  - "on-site only"               # Unless [YOUR CITY/STATE]
+  - "visa sponsorship not available"  # Remove if not relevant to you
+
+  # Role-type dealbreakers (these require AI reasoning, not just keyword matching)
+  # CUSTOMIZE: Examples below — replace with role types you want auto-rejected.
+  - "Pure IC coding role (no management or leadership scope)"
+  - "Requires daily hands-on coding in a specific language"
+  - "Individual contributor level (not management/leadership)"
+
+resume:
+  generate_cover_letter: false   # Set to true to also generate cover letters
+  budget_cap_usd: 20             # Max spend per run (lower to $5-10 after tuning period)
+  template_map:
+    # Maps role categories to the best-fit resume template
+    # CUSTOMIZE: Replace these with your template folder names and role categories
+    # Example: create 2-3 resume variants in leads/ optimized for different role types
+    category_1: template_1               # e.g., executive-scope, strategic roles
+    category_2: template_2               # e.g., technical, hands-on leadership roles
+    category_3: template_1               # map each target category to a template
+    default: template_1                  # Fallback template
+
+dedup:
+  recheck_after_days: 90         # Re-evaluate listings older than this (companies re-post)

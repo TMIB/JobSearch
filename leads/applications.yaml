@@ -1,0 +1,22 @@
+# Application Tracker
+# Single-file overview of all applications.
+# Status: applied | interviewing | rejected | offer | withdrawn | no-response | expired
+
+rejected: []
+# Example:
+#  - company: "Company Name"
+#    title: "Role Title"
+#    folder: "CompanyName"
+#    reason: "Why you passed"
+#    discovered: "2026-04-20"
+
+applications: []
+# Example:
+#  - company: "Company Name"
+#    title: "Role Title"
+#    folder: "CompanyName"
+#    applied_date: "2026-04-20"
+#    applied_via: "Company careers site"
+#    status: "applied"
+#    score: 0.85
+#    notes: ""

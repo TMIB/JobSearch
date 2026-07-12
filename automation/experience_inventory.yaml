@@ -1,0 +1,68 @@
+# Experience Inventory — [YOUR NAME]
+#
+# The living, authoritative reference for your skills and experience.
+# The resume agent reads this before generating any resume.
+#
+# Structure:
+#   skills: What you can claim, with keyword guidance
+#   certifications: Certs you hold or are pursuing
+#   industry_preferences: Industries you'd enjoy working in
+#   corrections: Mistakes to never repeat
+#   role_category_notes: What to emphasize per role type
+
+skills:
+# Add your skills/experience blocks here. For each one, list:
+#   - name: short name
+#   - context: where/when you did this
+#   - details: what you actually did
+#   - safe_keywords: terms grounded in real experience
+#   - avoid_keywords: terms that would overstate
+#   - notes: caveats and framing guidance
+#
+# Example:
+#
+#  - name: "Cloud Infrastructure"
+#    context: "Company X — Platform team"
+#    details: >
+#      Led team that migrated monolith to microservices on AWS.
+#      Managed the team, not hands-on with Terraform.
+#    safe_keywords:
+#      - "cloud migration"
+#      - "AWS"
+#      - "microservices architecture"
+#    avoid_keywords:
+#      - "Terraform developer"  # team did this, not you
+#      - "DevOps engineer"  # you managed, not hands-on
+#    notes: "Frame as leadership of cloud transformation, not hands-on DevOps."
+
+certifications: []
+# Example:
+#  - name: "PMP"
+#    status: "active"  # or "in progress" or "expired"
+#    notes: "Include when listing requires or prefers PMP."
+
+industry_preferences: []
+# Example:
+#  - name: "Gaming and games-adjacent"
+#    affinity: "high"
+#    details: "Genuinely enjoy this industry, past experience in game studios."
+#    notes: "Boost narrative_fit for gaming companies."
+
+corrections: []
+# Add corrections as you find resume errors:
+# - date: "2026-04-20"
+#   issue: "What was wrong"
+#   correction: "What should have been done"
+
+role_category_notes:
+# For each role category you're targeting, note what to emphasize and de-emphasize.
+# Example:
+#
+#  category_name:
+#    lead_with:
+#      - "Achievement most relevant to this category"
+#    supporting:
+#      - "Secondary relevant experience"
+#    de_emphasize:
+#      - "Experience less relevant here"
+#    tagline_direction: "Brief identity statement for this category"

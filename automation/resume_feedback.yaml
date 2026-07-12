@@ -1,0 +1,22 @@
+# Resume Feedback — Your Resume Quality Corrections
+#
+# Add entries here when the resume agent produces something incorrect or
+# poorly framed. Each entry teaches the agent to generate better resumes.
+#
+# Format:
+# - date: "2026-04-20"
+#   company: "Company the resume was generated for"
+#   issue: "What was wrong"
+#   correction: "What should have been done instead"
+#   category: "which role category (or 'all')"
+#   severity: "minor" | "major" | "critical"
+#
+# Tips from real-world usage:
+# - Page breaks: The resume agent tends to create too many full job sections,
+#   pushing Additional Experience to page 3. Budget 4-5 full sections max,
+#   fold the rest into single-line entries. Which roles get full treatment
+#   depends on relevance to the target listing.
+# - Never use internal tool names or codenames in external documents.
+# - Taglines should be high-level identity, not keyword lists.
+
+feedback: []
