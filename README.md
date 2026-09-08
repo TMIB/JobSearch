@@ -210,12 +210,13 @@ project/
 │   ├── experience_inventory.yaml          # Your skills/keywords reference (customize)
 │   ├── serpapi_search.sh                  # SerpAPI helper (add API key)
 │   ├── run_search.sh                      # Main orchestrator (update paths + API key)
+│   ├── append_seen.py                     # Records evaluated listings to the dedup ledger
 │   ├── generate_html_report.py            # HTML report generator
 │   ├── com.jobsearch.plist                # launchd schedule (update paths)
 │   └── logs/                              # Run logs (auto-created)
 └── leads/
     ├── applications.yaml                  # Application tracker
-    ├── seen_listings.jsonl                # Dedup tracker (auto-created)
+    ├── seen_listings.jsonl                # Dedup ledger, append-only (auto-created)
     ├── new_leads_report.html              # Daily HTML report (auto-created)
     └── {CompanyName}/                     # One folder per lead (auto-created)
         ├── {CompanyName}.txt              # Job listing text

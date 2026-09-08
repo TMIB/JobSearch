@@ -240,7 +240,7 @@ PYEOF
     log "Phase 2: EVALUATE — Scoring listing..."
     log "──────────────────────────────────────────"
 
-    "$CLAUDE_BIN" -p "Execute the evaluation agent workflow. Today's date is $RUN_DATE. Read the evaluation agent prompt, config, search results, and feedback. Score the listing and write results to automation/tmp/evaluated_leads.json. Also update leads/seen_listings.jsonl." \
+    "$CLAUDE_BIN" -p "Execute the evaluation agent workflow. Today's date is $RUN_DATE. Read the evaluation agent prompt, config, search results, and feedback. Score the listing and write results to automation/tmp/evaluated_leads.json." \
       --append-system-prompt "$(cat "$EVAL_PROMPT")" \
       --model sonnet \
       --allowed-tools "Read Write Bash Glob Grep" \
@@ -255,6 +255,9 @@ PYEOF
       notify "Job Search Error" "Evaluation failed. Check log." "Basso"
       exit 1
     fi
+
+    PROJECT_DIR="$PROJECT_DIR" TMP_DIR="$TMP_DIR" \
+      python3 "${AUTOMATION_DIR}/append_seen.py" 2>&1 | tee -a "$LOG_FILE"
 
     local score
     score=$(python3 "${AUTOMATION_DIR}/parse_eval.py" "$TMP_DIR/evaluated_leads.json" first_score 2>/dev/null || echo "?")
@@ -423,10 +426,28 @@ main() {
   log "Phase 2: EVALUATE — Scoring listings..."
   log "──────────────────────────────────────────"
 
+  # Snapshot the dedup history before the eval phase. On 2026-09-06 the eval
+  # agent destroyed all 9,821 entries with a GNU-only `head -n -24` (fails on
+  # BSD/macOS, emits nothing) followed by an mv of that empty output. There was
+  # no backup, and the silent loss blew the eval budget for two days. Keep 7.
+  if [ -s "$LEADS_DIR/seen_listings.jsonl" ]; then
+    cp "$LEADS_DIR/seen_listings.jsonl" \
+       "$LEADS_DIR/.seen_listings.jsonl.bak_${RUN_TIMESTAMP}" 2>/dev/null || true
+    # `|| true`: under `set -euo pipefail` a no-match glob makes ls exit non-zero,
+    # which would abort the run. A failed backup rotation must never do that.
+    ls -1t "$LEADS_DIR"/.seen_listings.jsonl.bak_* 2>/dev/null \
+      | tail -n +8 | while read -r old_bak; do rm -f "$old_bak"; done || true
+    seen_before=$(wc -l < "$LEADS_DIR/seen_listings.jsonl" | tr -d ' ')
+    log "Dedup history: $seen_before entries (snapshot saved)."
+  else
+    seen_before=0
+    log "WARNING: leads/seen_listings.jsonl is empty or missing — dedup is degraded."
+  fi
+
   local eval_budget=$(echo "$BUDGET_CAP * 0.25" | bc)
 
   run_agent_with_retry 3600 2 "$TMP_DIR/evaluated_leads.json" \
-    "$CLAUDE_BIN" -p "Execute the evaluation agent workflow. Today's date is $RUN_DATE. Read the evaluation agent prompt, config, search results, feedback, and seen listings. Score each listing and write results to automation/tmp/evaluated_leads.json. Also update leads/seen_listings.jsonl." \
+    "$CLAUDE_BIN" -p "Execute the evaluation agent workflow. Today's date is $RUN_DATE. Read the evaluation agent prompt, config, search results, feedback, and seen listings. Score each listing and write results to automation/tmp/evaluated_leads.json." \
     --append-system-prompt "$(cat "$EVAL_PROMPT")" \
     --model sonnet \
     --allowed-tools "Read Write Bash Glob Grep" \
@@ -434,6 +455,18 @@ main() {
     --max-budget-usd "$eval_budget" \
     --no-session-persistence \
     --add-dir "$PROJECT_DIR" || true
+
+  # The ledger is append-only in normal operation, so any shrink means something
+  # clobbered it. Restore from this run's snapshot rather than let the loss
+  # compound silently into a budget blowout on later runs.
+  if [ "$seen_before" -gt 0 ] && [ -f "$LEADS_DIR/.seen_listings.jsonl.bak_${RUN_TIMESTAMP}" ]; then
+    seen_after=$(wc -l < "$LEADS_DIR/seen_listings.jsonl" 2>/dev/null | tr -d ' ' || echo 0)
+    if [ "$seen_after" -lt $(( seen_before / 2 )) ]; then
+      log "ERROR: seen_listings.jsonl shrank ${seen_before} -> ${seen_after} entries. Restoring snapshot."
+      cp "$LEADS_DIR/.seen_listings.jsonl.bak_${RUN_TIMESTAMP}" "$LEADS_DIR/seen_listings.jsonl"
+      notify "Job Search" "Dedup history was clobbered and restored from snapshot." "Basso"
+    fi
+  fi
 
   if [ ! -f "$TMP_DIR/evaluated_leads.json" ]; then
     log "ERROR: Evaluation agent did not produce evaluated_leads.json"
@@ -447,6 +480,11 @@ main() {
   # resume generation and the report consume them.
   log "Reconciling apply URLs against search results..."
   TMP_DIR="$TMP_DIR" python3 "${AUTOMATION_DIR}/reconcile_urls.py" 2>&1 | tee -a "$LOG_FILE"
+
+  # Record what was evaluated. Deterministic (no LLM) and append-only — this
+  # replaces the eval agent editing the ledger with shell commands.
+  PROJECT_DIR="$PROJECT_DIR" TMP_DIR="$TMP_DIR" \
+    python3 "${AUTOMATION_DIR}/append_seen.py" 2>&1 | tee -a "$LOG_FILE"
 
   local resume_count
   resume_count=$(python3 "${AUTOMATION_DIR}/parse_eval.py" "$TMP_DIR/evaluated_leads.json" resume_count 2>/dev/null || echo "0")

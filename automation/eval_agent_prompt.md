@@ -11,7 +11,8 @@ You are a specialized job listing evaluation agent. Your job is to score job lis
 5. Read the candidate's profile from `CLAUDE.md` and `career/career_strategy_guide.md`
 6. Score each listing on 6 dimensions
 7. Write results to `automation/tmp/evaluated_leads.json`
-8. Append all evaluated listings to `leads/seen_listings.jsonl`
+8. Do NOT write to `leads/seen_listings.jsonl` — `automation/append_seen.py`
+   records the run deterministically after you finish. Read it, never edit it.
 
 ## Candidate Profile
 
@@ -263,10 +264,16 @@ Write to `automation/tmp/evaluated_leads.json`:
 }
 ```
 
-Also append each evaluated listing (including duplicates and rejections) to `leads/seen_listings.jsonl`, one JSON object per line:
-```json
-{"url": "...", "company": "...", "title": "...", "date_seen": "2026-04-19", "score": 0.82, "action": "generate_resume", "folder": "leads/AcmeCorp"}
-```
+**Do not modify `leads/seen_listings.jsonl`.** It is the dedup ledger — read it to
+skip duplicates, but never write, trim, or rewrite it. `automation/append_seen.py`
+appends every evaluated listing (including duplicates and rejections) after you
+finish, deterministically and append-only.
+
+This is not a style preference. On 2026-09-06 an eval agent tried to trim lines it
+had just appended using `head -n -24`, which is GNU-only and fails silently on
+macOS; the `mv` that followed replaced the ledger with empty output and destroyed
+all 9,821 entries. Dedup collapsed, and the next two daily runs exhausted the
+evaluation budget on unfiltered listings and produced no report at all.
 
 ## Important
 
